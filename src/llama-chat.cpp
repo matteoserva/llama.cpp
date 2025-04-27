@@ -122,10 +122,9 @@ llm_chat_template llm_chat_detect_template(const std::string & tmpl) {
         }
     } else if (tmpl_contains("<|assistant|>") && tmpl_contains("<|end|>")) {
         return LLM_CHAT_TEMPLATE_PHI_3;
+    } else if (tmpl_contains("[gMASK]<sop>") && tmpl_contains("<|assistant|>") && tmpl_contains("<|user|>")) { /* GLM4 models */
+        return LLM_CHAT_TEMPLATE_CHATGML_4;
     } else if (tmpl_contains("<|assistant|>") && tmpl_contains("<|user|>")) {
-        if (tmpl_contains("[gMASK]<sop>")) { /* new GLM4 0414 models */
-            return LLM_CHAT_TEMPLATE_CHATGML_4;
-        }
         return tmpl_contains("</s>") ? LLM_CHAT_TEMPLATE_FALCON_3 : LLM_CHAT_TEMPLATE_GLMEDGE;
     } else if (tmpl_contains("<|{{ item['role'] }}|>") && tmpl_contains("<|begin_of_image|>")) {
         return LLM_CHAT_TEMPLATE_GLMEDGE;
@@ -158,8 +157,6 @@ llm_chat_template llm_chat_detect_template(const std::string & tmpl) {
     } else if (tmpl_contains("[gMASK]sop")) {
         // chatglm3-6b
         return LLM_CHAT_TEMPLATE_CHATGML_3;
-    } else if (tmpl_contains("[gMASK]<sop>")) { /* old GLM4 models */
-        return LLM_CHAT_TEMPLATE_CHATGML_4;
     } else if (tmpl_contains(LU8("<用户>"))) {
         // MiniCPM-3B-OpenHermes-2.5-v2-GGUF
         return LLM_CHAT_TEMPLATE_MINICPM;
