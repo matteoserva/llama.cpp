@@ -645,8 +645,7 @@ static json oaicompat_completion_params_parse(
     /* Prefill assistant message support */
     bool prefill_assistant_message = inputs.messages.size() > 0 && inputs.messages[inputs.messages.size()-1].role == "assistant";
     common_chat_msg last_message;
-    if (prefill_assistant_message)
-    {
+    if (prefill_assistant_message) {
         last_message = inputs.messages.back();
         inputs.messages.pop_back();
         inputs.extract_reasoning = false;
@@ -657,8 +656,7 @@ static json oaicompat_completion_params_parse(
     auto chat_params = common_chat_templates_apply(tmpls, inputs);
 
     /* Append assistant prefilled message */
-    if (prefill_assistant_message)
-    {
+    if (prefill_assistant_message) {
          chat_params.prompt += last_message.content;
     }
 
