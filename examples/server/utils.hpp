@@ -642,8 +642,14 @@ static json oaicompat_completion_params_parse(
         throw std::runtime_error("Cannot use custom grammar constraints with tools.");
     }
 
+    /* sanity check, max one assistant message at the end of the list */
+    bool last_message_is_assistant = inputs.messages.size() > 0 && inputs.messages.back().role == "assistant";
+    if (last_message_is_assistant && inputs.messages.size() >= 2 && inputs.messages[inputs.messages.size()-2].role == "assistant") {
+        throw std::runtime_error("Cannot have 2 or more assistant messages at the end of the list.");
+    }
+
     /* Prefill assistant message support */
-    bool prefill_assistant_message = inputs.messages.size() > 0 && inputs.messages.back().role == "assistant";
+    bool prefill_assistant_message = last_message_is_assistant;
     common_chat_msg last_message;
     if (prefill_assistant_message) {
         last_message = inputs.messages.back();
