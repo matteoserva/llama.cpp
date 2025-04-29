@@ -647,7 +647,7 @@ static json oaicompat_completion_params_parse(
     common_chat_msg last_message;
     if (prefill_assistant_message)
     {
-    	last_message = inputs.messages.back();
+        last_message = inputs.messages.back();
         inputs.messages.pop_back();
         inputs.extract_reasoning = false;
         inputs.add_generation_prompt = true;
