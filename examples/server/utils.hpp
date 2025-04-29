@@ -643,7 +643,7 @@ static json oaicompat_completion_params_parse(
     }
 
     /* Prefill assistant message support */
-    bool prefill_assistant_message = inputs.messages.size() > 0 && inputs.messages[inputs.messages.size()-1].role == "assistant";
+    bool prefill_assistant_message = inputs.messages.size() > 0 && inputs.messages.back().role == "assistant";
     common_chat_msg last_message;
     if (prefill_assistant_message) {
         last_message = inputs.messages.back();
