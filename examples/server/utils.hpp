@@ -642,7 +642,8 @@ static json oaicompat_completion_params_parse(
         throw std::runtime_error("Cannot use custom grammar constraints with tools.");
     }
 
-    /* Prefill assistant message support */
+    // if the assistant message appears at the end of list, we do not add end-of-turn token
+    // for ex. this can be useful to modify the reasoning process in reasoning models
     bool prefill_assistant_message = !inputs.messages.empty() && inputs.messages.back().role == "assistant";
     common_chat_msg last_message;
     if (prefill_assistant_message) {
