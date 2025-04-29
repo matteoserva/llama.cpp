@@ -1597,7 +1597,6 @@ static common_chat_params common_chat_templates_apply_jinja(
     {
         params.extra_context[el.first] = json::parse(el.second);
     }
-    
 
     if (!inputs.json_schema.empty()) {
         params.json_schema = json::parse(inputs.json_schema);
