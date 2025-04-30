@@ -2199,7 +2199,7 @@ struct server_context {
 
             if(slot.n_sent_text == 0 && slot.has_next_token && !slot.params.start_strings.empty())
             {
-                size_t max_start_string_size = 0;           
+                size_t max_start_string_size = 0;
                 for(auto start_string: slot.params.start_strings)
                 {
                     max_start_string_size = std::max(max_start_string_size, start_string.size());
@@ -2218,12 +2218,12 @@ struct server_context {
                 {
                     found_pos = slot.generated_text.find(start_string,search_pos);
                     if(found_pos != slot.generated_text.npos) {
-                        found = true; 
+                        found = true;
                         found_string = start_string;
                         break;
                     }
                 }
-                
+
                 if(found && slot.generated_text.size() > (found_pos + found_string.size()) ) {
                     slot.generated_text.erase(
                         slot.generated_text.begin(),
