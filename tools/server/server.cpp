@@ -104,6 +104,7 @@ struct slot_params {
     std::vector<common_adapter_lora_info> lora;
 
     std::vector<std::string> antiprompt;
+    std::vector<std::string> start_strings;
     std::vector<std::string> response_fields;
     bool timings_per_token = false;
     bool post_sampling_probs = false;
@@ -161,6 +162,7 @@ struct slot_params {
             {"mirostat",                  sampling.mirostat},
             {"mirostat_tau",              sampling.mirostat_tau},
             {"mirostat_eta",              sampling.mirostat_eta},
+            {"start",                     start_strings},
             {"stop",                      antiprompt},
             {"max_tokens",                n_predict}, // User configured n_predict
             {"n_keep",                    n_keep},
@@ -229,6 +231,7 @@ struct server_task {
         slot_params defaults;
         defaults.sampling    = params_base.sampling;
         defaults.speculative = params_base.speculative;
+        defaults.start_strings = params_base.start_strings;
 
         // enabling this will output extra debug information in the HTTP responses from the server
         params.verbose           = params_base.verbosity > 9;
@@ -244,6 +247,7 @@ struct server_task {
       //params.t_max_prompt_ms  = json_value(data, "t_max_prompt_ms",    defaults.t_max_prompt_ms); // TODO: implement
         params.t_max_predict_ms = json_value(data, "t_max_predict_ms",   defaults.t_max_predict_ms);
         params.response_fields  = json_value(data, "response_fields",   std::vector<std::string>());
+        params.start_strings    = json_value(data, "start_strings",      defaults.start_strings);
 
         params.sampling.top_k              = json_value(data, "top_k",              defaults.sampling.top_k);
         params.sampling.top_p              = json_value(data, "top_p",              defaults.sampling.top_p);
@@ -1998,6 +2002,7 @@ struct server_context {
             SLT_INF(slot, "new slot n_ctx_slot = %d\n", slot.n_ctx);
 
             slot.params.sampling = params_base.sampling;
+            slot.params.start_strings = params_base.start_strings;
 
             slot.callback_on_release = [this](int) {
                 queue_tasks.pop_deferred_task();
@@ -2192,6 +2197,42 @@ struct server_context {
             const std::string str_test = slot.generated_text.substr(pos);
             bool send_text = true;
 
+            if(slot.n_sent_text == 0 && slot.has_next_token && !slot.params.start_strings.empty())
+            {
+                size_t max_start_string_size = 0;           
+                for(auto start_string: slot.params.start_strings)
+                {
+                    max_start_string_size = std::max(max_start_string_size, start_string.size());
+                }
+                size_t search_len = max_start_string_size + token_str.size();
+                size_t search_pos = 0;
+                if(slot.generated_text.size() > search_len)
+                {
+                    search_pos = slot.generated_text.size() - search_len;
+                }
+
+                auto found_pos = slot.generated_text.npos;
+                bool found = false;
+                std::string found_string;
+                for(auto start_string: slot.params.start_strings)
+                {
+                    found_pos = slot.generated_text.find(start_string,search_pos);
+                    if(found_pos != slot.generated_text.npos) {
+                        found = true; 
+                        found_string = start_string;
+                        break;
+                    }
+                }
+                
+                if(found && slot.generated_text.size() > (found_pos + found_string.size()) ) {
+                    slot.generated_text.erase(
+                        slot.generated_text.begin(),
+                        slot.generated_text.begin() + found_pos + found_string.size());
+                } else {
+                    send_text = false;
+                }
+            }
+
             size_t stop_pos = slot.find_stopping_strings(str_test, token_str.size(), true);
             if (stop_pos != std::string::npos) {
                 slot.generated_text.erase(
@@ -2200,7 +2241,7 @@ struct server_context {
                 pos = std::min(slot.n_sent_text, slot.generated_text.size());
             } else if (slot.has_next_token) {
                 stop_pos = slot.find_stopping_strings(str_test, token_str.size(), false);
-                send_text = stop_pos == std::string::npos;
+                send_text = send_text && stop_pos == std::string::npos;
             }
 
             // check if there is any token to predict

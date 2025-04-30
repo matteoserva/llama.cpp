@@ -2849,6 +2849,14 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         }
     ).set_examples({LLAMA_EXAMPLE_SERVER, LLAMA_EXAMPLE_MAIN}).set_env("LLAMA_ARG_THINK"));
     add_opt(common_arg(
+        {"--start-string"}, "STRING",
+        "Start outputting tokens only when the start string has been reached",
+        [](common_params & params, const std::string & value) {
+            params.start_strings.resize(1);
+            params.start_strings[0] = value;
+        }
+    ).set_examples({LLAMA_EXAMPLE_SERVER}).set_env("LLAMA_ARG_START_STRING"));
+    add_opt(common_arg(
         {"--chat-template"}, "JINJA_TEMPLATE",
         string_format(
             "set custom jinja chat template (default: template taken from model's metadata)\n"
