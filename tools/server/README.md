@@ -391,6 +391,9 @@ By default, this value is set to `0`, meaning no tokens are kept. Use `-1` to re
 
 `stream`: Allows receiving each predicted token in real-time instead of waiting for the completion to finish (uses a different response format). To enable this, set to `true`.
 
+`start_strings`: Specify a JSON array of starting strings.
+The output of the model is discarded until the first start string is reached, the matching string is not included in the completion. Default: `[]`
+
 `stop`: Specify a JSON array of stopping strings.
 These words will not be included in the completion, so make sure to add them to the prompt for the next iteration. Default: `[]`
 
