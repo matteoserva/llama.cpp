@@ -2197,30 +2197,30 @@ struct server_context {
             const std::string str_test = slot.generated_text.substr(pos);
             bool send_text = true;
 
-            if(slot.n_sent_text == 0 && slot.has_next_token && !slot.params.start_strings.empty()) {
+            if (slot.n_sent_text == 0 && slot.has_next_token && !slot.params.start_strings.empty()) {
                 size_t max_start_string_size = 0;
-                for(auto start_string: slot.params.start_strings) {
+                for (auto start_string: slot.params.start_strings) {
                     max_start_string_size = std::max(max_start_string_size, start_string.size());
                 }
                 size_t search_len = max_start_string_size + token_str.size();
                 size_t search_pos = 0;
-                if(slot.generated_text.size() > search_len) {
+                if (slot.generated_text.size() > search_len) {
                     search_pos = slot.generated_text.size() - search_len;
                 }
 
                 auto found_pos = slot.generated_text.npos;
                 bool found = false;
                 std::string found_string;
-                for(auto start_string: slot.params.start_strings) {
+                for (auto start_string: slot.params.start_strings) {
                     found_pos = slot.generated_text.find(start_string,search_pos);
-                    if(found_pos != slot.generated_text.npos) {
+                    if (found_pos != slot.generated_text.npos) {
                         found = true;
                         found_string = start_string;
                         break;
                     }
                 }
 
-                if(found && slot.generated_text.size() > (found_pos + found_string.size()) ) {
+                if (found && slot.generated_text.size() > (found_pos + found_string.size()) ) {
                     slot.generated_text.erase(
                         slot.generated_text.begin(),
                         slot.generated_text.begin() + found_pos + found_string.size());
