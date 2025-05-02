@@ -489,6 +489,25 @@ static size_t find_partial_stop_string(const std::string &stop, const std::strin
     return std::string::npos;
 }
 
+/* returns a pair containing the position and index of first element found.
+   returns npos and -1 if not found */
+static std::pair<size_t, int> find_first_substring(const std::string &haystack, const std::vector<std::string> & needles, size_t search_pos = 0)
+{
+    size_t found_pos  = std::string::npos;
+    int    found_idx = -1;
+
+    for (unsigned int i = 0; i < needles.size(); ++i) {
+        const std::string & start_string = needles[i];
+        found_pos = haystack.find(start_string,search_pos);
+        if (found_pos != std::string::npos) {
+            found_idx = i;
+            break;
+        }
+    }
+
+    return std::pair<size_t, int>(found_pos,found_idx);
+}
+
 // TODO: reuse llama_detokenize
 template <class Iter>
 static std::string tokens_to_str(llama_context * ctx, Iter begin, Iter end) {

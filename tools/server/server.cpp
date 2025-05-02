@@ -2216,19 +2216,12 @@ struct server_context {
                     search_pos = slot.generated_text.size() - search_len;
                 }
 
-                auto found_pos = slot.generated_text.npos;
-                bool found = false;
-                std::string found_string;
-                for (auto start_string: slot.params.start_strings) {
-                    found_pos = slot.generated_text.find(start_string,search_pos);
-                    if (found_pos != slot.generated_text.npos) {
-                        found = true;
-                        found_string = start_string;
-                        break;
-                    }
-                }
+                std::pair<size_t, int> search_result = find_first_substring(slot.generated_text,slot.params.start_strings, search_pos);
+                bool found = search_result.first != std::string::npos;
 
-                if (found && slot.generated_text.size() > (found_pos + found_string.size()) ) {
+                if (found) {
+                    auto found_pos = search_result.first;
+                    std::string found_string = slot.params.start_strings[search_result.second];
                     slot.generated_text.erase(
                         slot.generated_text.begin(),
                         slot.generated_text.begin() + found_pos + found_string.size());
