@@ -105,6 +105,7 @@ struct slot_params {
 
     std::vector<std::string> antiprompt;
     std::vector<std::string> start_strings;
+    size_t                   start_string_max_len;
     std::vector<std::string> response_fields;
     bool timings_per_token = false;
     bool post_sampling_probs = false;
@@ -247,8 +248,7 @@ struct server_task {
       //params.t_max_prompt_ms  = json_value(data, "t_max_prompt_ms",    defaults.t_max_prompt_ms); // TODO: implement
         params.t_max_predict_ms = json_value(data, "t_max_predict_ms",   defaults.t_max_predict_ms);
         params.response_fields  = json_value(data, "response_fields",   std::vector<std::string>());
-        params.start_strings    = json_value(data, "start_strings",      defaults.start_strings);
-
+        
         params.sampling.top_k              = json_value(data, "top_k",              defaults.sampling.top_k);
         params.sampling.top_p              = json_value(data, "top_p",              defaults.sampling.top_p);
         params.sampling.min_p              = json_value(data, "min_p",              defaults.sampling.min_p);
@@ -281,6 +281,14 @@ struct server_task {
         params.speculative.n_min = std::min(params.speculative.n_max, params.speculative.n_min);
         params.speculative.n_min = std::max(params.speculative.n_min, 0);
         params.speculative.n_max = std::max(params.speculative.n_max, 0);
+
+        // start strings
+        params.start_strings    = json_value(data, "start_strings",      defaults.start_strings);
+        params.start_string_max_len = 0;
+        for (auto start_string: params.start_strings) {
+            params.start_string_max_len = std::max(params.start_string_max_len, start_string.size());
+        }
+        
 
         // Use OpenAI API logprobs only if n_probs wasn't provided
         if (data.contains("logprobs") && params.sampling.n_probs == defaults.sampling.n_probs){
@@ -1295,6 +1303,8 @@ struct server_slot {
 
     std::string stopping_word;
 
+    bool   start_string_found = false;
+
     // sampling
     json json_schema;
 
@@ -1332,6 +1342,7 @@ struct server_slot {
         n_past             = 0;
         n_sent_text        = 0;
         task_type          = SERVER_TASK_TYPE_COMPLETION;
+        start_string_found = false;
 
         generated_tokens.clear();
         generated_token_probs.clear();
@@ -2197,11 +2208,8 @@ struct server_context {
             const std::string str_test = slot.generated_text.substr(pos);
             bool send_text = true;
 
-            if (slot.n_sent_text == 0 && slot.has_next_token && !slot.params.start_strings.empty()) {
-                size_t max_start_string_size = 0;
-                for (auto start_string: slot.params.start_strings) {
-                    max_start_string_size = std::max(max_start_string_size, start_string.size());
-                }
+            if (!slot.start_string_found && slot.has_next_token && !slot.params.start_strings.empty()) {
+                size_t max_start_string_size = slot.params.start_string_max_len;
                 size_t search_len = max_start_string_size + token_str.size();
                 size_t search_pos = 0;
                 if (slot.generated_text.size() > search_len) {
@@ -2224,6 +2232,7 @@ struct server_context {
                     slot.generated_text.erase(
                         slot.generated_text.begin(),
                         slot.generated_text.begin() + found_pos + found_string.size());
+                    slot.start_string_found = true;
                 } else {
                     send_text = false;
                 }
