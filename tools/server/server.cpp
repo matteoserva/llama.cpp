@@ -2201,13 +2201,14 @@ struct server_context {
         // check if there is incomplete UTF-8 character at the end
         bool incomplete = validate_utf8(slot.generated_text) < slot.generated_text.size();
 
-        // search stop word and delete it
+
         if (!incomplete) {
             size_t pos = std::min(slot.n_sent_text, slot.generated_text.size());
 
             const std::string str_test = slot.generated_text.substr(pos);
             bool send_text = true;
 
+            // Handle the start strings
             if (!slot.start_string_found && slot.has_next_token && !slot.params.start_strings.empty()) {
                 size_t max_start_string_size = slot.params.start_string_max_len;
                 size_t search_len = max_start_string_size + token_str.size();
@@ -2231,6 +2232,7 @@ struct server_context {
                 }
             }
 
+            // search stop word and delete it
             size_t stop_pos = slot.find_stopping_strings(str_test, token_str.size(), true);
             if (stop_pos != std::string::npos) {
                 slot.generated_text.erase(
