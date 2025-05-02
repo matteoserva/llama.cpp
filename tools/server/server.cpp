@@ -248,7 +248,7 @@ struct server_task {
       //params.t_max_prompt_ms  = json_value(data, "t_max_prompt_ms",    defaults.t_max_prompt_ms); // TODO: implement
         params.t_max_predict_ms = json_value(data, "t_max_predict_ms",   defaults.t_max_predict_ms);
         params.response_fields  = json_value(data, "response_fields",   std::vector<std::string>());
-        
+
         params.sampling.top_k              = json_value(data, "top_k",              defaults.sampling.top_k);
         params.sampling.top_p              = json_value(data, "top_p",              defaults.sampling.top_p);
         params.sampling.min_p              = json_value(data, "min_p",              defaults.sampling.min_p);
@@ -288,7 +288,7 @@ struct server_task {
         for (auto start_string: params.start_strings) {
             params.start_string_max_len = std::max(params.start_string_max_len, start_string.size());
         }
-        
+
 
         // Use OpenAI API logprobs only if n_probs wasn't provided
         if (data.contains("logprobs") && params.sampling.n_probs == defaults.sampling.n_probs){
