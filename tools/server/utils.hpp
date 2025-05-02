@@ -498,10 +498,10 @@ static std::pair<size_t, int> find_first_substring(const std::string &haystack, 
 
     for (unsigned int i = 0; i < needles.size(); ++i) {
         const std::string & start_string = needles[i];
-        found_pos = haystack.find(start_string,search_pos);
-        if (found_pos != std::string::npos) {
+        auto needle_pos = haystack.find(start_string,search_pos);
+        if (needle_pos != std::string::npos && (found_pos == std::string::npos || needle_pos < found_pos) ) {
+            found_pos = needle_pos;
             found_idx = i;
-            break;
         }
     }
 
