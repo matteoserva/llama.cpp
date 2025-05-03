@@ -2208,7 +2208,7 @@ struct server_context {
         bool full_stop_reached = false;
         bool partial_stop_reached = false;
 
-        // search start strings
+        // search the start strings
         if (start_string_missing && !incomplete && slot.has_next_token) {
             size_t max_start_string_size = slot.params.start_string_max_len;
             size_t search_len = max_start_string_size + token_str.size();
@@ -2230,17 +2230,11 @@ struct server_context {
             }
         }
 
+        // search the stop strings
         if (!incomplete) {
             size_t pos = std::min(slot.n_sent_text, slot.generated_text.size());
 
             const std::string str_test = slot.generated_text.substr(pos);
-            bool send_text = true;
-
-            // Handle the start strings
-            if (start_string_missing)
-            {
-                send_text = false;
-            }
 
             // search stop word and delete it
             size_t stop_pos = slot.find_stopping_strings(str_test, token_str.size(), true);
@@ -2249,25 +2243,36 @@ struct server_context {
                     slot.generated_text.begin() + pos + stop_pos,
                     slot.generated_text.end());
                 pos = std::min(slot.n_sent_text, slot.generated_text.size());
+                full_stop_reached = true;
             } else if (slot.has_next_token) {
                 stop_pos = slot.find_stopping_strings(str_test, token_str.size(), false);
-                send_text = send_text && stop_pos == std::string::npos;
+                partial_stop_reached = (stop_pos != std::string::npos);
             }
+        }
 
-            // check if there is any token to predict
-            if (send_text) {
-                // no send the stop word in the response
-                result.text_to_send = slot.generated_text.substr(pos, std::string::npos);
-                slot.n_sent_text += result.text_to_send.size();
-                // add the token to slot queue and cache
-            } else {
-                result.text_to_send = "";
-            }
+        if(full_stop_reached)
+        {
+            slot.stop           = STOP_TYPE_WORD;
+            slot.has_next_token = false;
+            SLT_DBG(slot, "stopped by word, n_decoded = %d, n_predict = %d\n", slot.n_decoded, slot.params.n_predict);
+        }
 
-            slot.add_token(result);
-            if (slot.params.stream) {
-                send_partial_response(slot, result);
-            }
+        if(partial_stop_reached || start_string_missing)
+        {
+            result.text_to_send = "";
+        }
+        else
+        {
+            size_t valid_generated_len = validate_utf8(slot.generated_text);
+            size_t available_data = valid_generated_len - slot.n_sent_text;
+            result.text_to_send = slot.generated_text.substr(slot.n_sent_text, available_data);
+            slot.n_sent_text += result.text_to_send.size();
+        }
+
+        slot.add_token(result);
+
+        if (slot.params.stream && !result.text_to_send.empty()) {
+            send_partial_response(slot, result);
         }
 
         if (incomplete) {
@@ -2275,7 +2280,7 @@ struct server_context {
         }
 
         // check the limits
-        if (slot.n_decoded > 0 && slot.has_next_token && !slot.has_budget(params_base)) {
+        if (slot.has_next_token && token_budget_exhausted) {
             slot.stop           = STOP_TYPE_LIMIT;
             slot.has_next_token = false;
 
