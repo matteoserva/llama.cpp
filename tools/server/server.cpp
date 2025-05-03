@@ -2196,11 +2196,39 @@ struct server_context {
         if (slot.params.return_tokens) {
             slot.generated_tokens.push_back(result.tok);
         }
-        slot.has_next_token = true;
+        
 
+        // SECTION: compute conditions on generated tokens so far
+
+        slot.has_next_token = true;
         // check if there is incomplete UTF-8 character at the end
         bool incomplete = validate_utf8(slot.generated_text) < slot.generated_text.size();
+        bool token_budget_exhausted = slot.n_decoded > 0 && !slot.has_budget(params_base);
+        bool start_string_missing = !slot.params.start_strings.empty() && !slot.start_string_found;
+        bool full_stop_reached = false;
+        bool partial_stop_reached = false;
 
+        // search start strings
+        if (start_string_missing && !incomplete && slot.has_next_token) {
+            size_t max_start_string_size = slot.params.start_string_max_len;
+            size_t search_len = max_start_string_size + token_str.size();
+            size_t search_pos = 0;
+            if (slot.generated_text.size() > search_len) {
+                search_pos = slot.generated_text.size() - search_len;
+            }
+
+            std::pair<size_t, int> search_result = find_first_substring(slot.generated_text,slot.params.start_strings, search_pos);
+            bool start_string_found = search_result.first != std::string::npos;
+            if (start_string_found) {
+                auto found_pos = search_result.first;
+                std::string found_string = slot.params.start_strings[search_result.second];
+                slot.generated_text.erase(
+                    slot.generated_text.begin(),
+                    slot.generated_text.begin() + found_pos + found_string.size());
+                slot.start_string_found = true;
+                start_string_missing = false;
+            }
+        }
 
         if (!incomplete) {
             size_t pos = std::min(slot.n_sent_text, slot.generated_text.size());
@@ -2209,27 +2237,9 @@ struct server_context {
             bool send_text = true;
 
             // Handle the start strings
-            if (!slot.start_string_found && slot.has_next_token && !slot.params.start_strings.empty()) {
-                size_t max_start_string_size = slot.params.start_string_max_len;
-                size_t search_len = max_start_string_size + token_str.size();
-                size_t search_pos = 0;
-                if (slot.generated_text.size() > search_len) {
-                    search_pos = slot.generated_text.size() - search_len;
-                }
-
-                std::pair<size_t, int> search_result = find_first_substring(slot.generated_text,slot.params.start_strings, search_pos);
-                bool found = search_result.first != std::string::npos;
-
-                if (found) {
-                    auto found_pos = search_result.first;
-                    std::string found_string = slot.params.start_strings[search_result.second];
-                    slot.generated_text.erase(
-                        slot.generated_text.begin(),
-                        slot.generated_text.begin() + found_pos + found_string.size());
-                    slot.start_string_found = true;
-                } else {
-                    send_text = false;
-                }
+            if (start_string_missing)
+            {
+                send_text = false;
             }
 
             // search stop word and delete it
