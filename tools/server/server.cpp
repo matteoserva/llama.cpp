@@ -2196,7 +2196,6 @@ struct server_context {
         if (slot.params.return_tokens) {
             slot.generated_tokens.push_back(result.tok);
         }
-        
 
         // SECTION: compute conditions on generated tokens so far
 
@@ -2250,6 +2249,7 @@ struct server_context {
             }
         }
 
+        // @ngxson all the other stop reasons should be in this function
         if(full_stop_reached)
         {
             slot.stop           = STOP_TYPE_WORD;
@@ -2257,6 +2257,7 @@ struct server_context {
             SLT_DBG(slot, "stopped by word, n_decoded = %d, n_predict = %d\n", slot.n_decoded, slot.params.n_predict);
         }
 
+        // hold the output if we are not ready
         if(partial_stop_reached || start_string_missing)
         {
             result.text_to_send = "";
@@ -2269,8 +2270,10 @@ struct server_context {
             slot.n_sent_text += result.text_to_send.size();
         }
 
+        // @ngxson: add the token and its probabilities even if not valid utf8 data
         slot.add_token(result);
 
+        // @ngxson: we also avoid outputting the final token if it's entirely a stop word
         if (slot.params.stream && !result.text_to_send.empty()) {
             send_partial_response(slot, result);
         }
