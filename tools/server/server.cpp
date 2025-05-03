@@ -2217,11 +2217,11 @@ struct server_context {
                 search_pos = slot.generated_text.size() - search_len;
             }
 
-            std::pair<size_t, int> search_result = find_first_substring(slot.generated_text,slot.params.start_strings, search_pos);
+            std::pair<size_t, std::string> search_result = find_first_substring(slot.generated_text,slot.params.start_strings, search_pos);
             bool start_string_found = search_result.first != std::string::npos;
             if (start_string_found) {
                 auto found_pos = search_result.first;
-                std::string found_string = slot.params.start_strings[search_result.second];
+                std::string found_string = search_result.second;
                 slot.generated_text.erase(
                     slot.generated_text.begin(),
                     slot.generated_text.begin() + found_pos + found_string.size());
